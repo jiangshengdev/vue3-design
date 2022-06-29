@@ -16,12 +16,12 @@ export function reactive(target: object) {
     return target
   }
 
-  let existingProxy = reactiveMap.get(target)
+  const existingProxy = reactiveMap.get(target)
   if (existingProxy) {
     return existingProxy
   }
 
-  let proxy = new Proxy(target, mutableHandlers)
+  const proxy = new Proxy(target, mutableHandlers)
   reactiveMap.set(target, proxy)
   return proxy
 }
