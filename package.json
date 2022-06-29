@@ -3,9 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.js",
     "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "prettier --write --parser typescript \"packages/**/*.ts?(x)\""
   },
   "dependencies": {
     "vue": "^3.2.25"
