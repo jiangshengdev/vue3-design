@@ -1,10 +1,10 @@
 import { reactive } from '@vue/reactivity'
 
 let data = {
-  name: 'js',
-  age: 66,
+  name: 'foo',
+  age: 42,
   address: {
-    num: 9
+    num: 666
   }
 }
 let state = reactive(data)
