@@ -1,4 +1,12 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import { reactive } from '@vue/reactivity'
 
-createApp(App).mount('#app')
+let data = {
+  name: 'js',
+  age: 66,
+  address: {
+    num: 9
+  }
+}
+let state = reactive(data)
+
+console.log(state)
