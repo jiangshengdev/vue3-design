@@ -3,7 +3,7 @@ import { ReactiveFlags, Target } from './reactive'
 export const mutableHandlers: ProxyHandler<object> = {
   get(target: Target, key: string | symbol, receiver: object) {
     if (key === ReactiveFlags.IS_REACTIVE) {
-      return
+      return true
     }
 
     return Reflect.get(target, key, receiver)

@@ -16,6 +16,10 @@ export function reactive(target: object) {
     return target
   }
 
+  if (target[ReactiveFlags.IS_REACTIVE]) {
+    return target
+  }
+
   const existingProxy = reactiveMap.get(target)
   if (existingProxy) {
     return existingProxy
