@@ -1,16 +1,23 @@
-import { ReactiveFlags, Target } from './reactive'
-import { track, trigger } from './effect'
+import { ReactiveFlags, reactiveMap, Target } from './reactive'
 import { TrackOpTypes, TriggerOpTypes } from './operations'
+import { track, trigger } from './effect'
 
 export const mutableHandlers: ProxyHandler<object> = {
   get(target: Target, key: string | symbol, receiver: object) {
     if (key === ReactiveFlags.IS_REACTIVE) {
       return true
+    } else if (
+      key === ReactiveFlags.RAW &&
+      receiver === reactiveMap.get(target)
+    ) {
+      return target
     }
+
+    const res = Reflect.get(target, key, receiver)
 
     track(target, TrackOpTypes.GET, key)
 
-    return Reflect.get(target, key, receiver)
+    return res
   },
   set(
     target: object,
@@ -20,7 +27,7 @@ export const mutableHandlers: ProxyHandler<object> = {
   ): boolean {
     let oldValue = (target as any)[key]
 
-    let result = Reflect.set(target, key, value, receiver)
+    const result = Reflect.set(target, key, value, receiver)
 
     trigger(target, TriggerOpTypes.SET, key, value, oldValue)
 

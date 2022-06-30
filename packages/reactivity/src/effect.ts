@@ -1,5 +1,5 @@
 import { TrackOpTypes, TriggerOpTypes } from './operations'
-import { Dep } from './dep'
+import { createDep, Dep } from './dep'
 
 type KeyToDepMap = Map<any, Dep>
 const targetMap = new WeakMap<any, KeyToDepMap>()
@@ -19,10 +19,12 @@ export class ReactiveEffect<T = any> {
     }
 
     try {
+      this.parent = activeEffect
       activeEffect = this
       return this.fn()
     } finally {
-      activeEffect = undefined
+      activeEffect = this.parent
+      this.parent = undefined
     }
   }
 }
@@ -40,14 +42,19 @@ export function track(target: object, type: TrackOpTypes, key: unknown) {
     }
     let dep = depsMap.get(key)
     if (!dep) {
-      depsMap.set(key, (dep = new Set()))
+      depsMap.set(key, (dep = createDep()))
     }
 
-    let shouldTrack = !dep.has(activeEffect)
-    if (shouldTrack) {
-      dep.add(activeEffect)
-      activeEffect.deps.push(dep)
-    }
+    trackEffects(dep)
+  }
+}
+
+export function trackEffects(dep: Dep) {
+  let shouldTrack = !dep.has(activeEffect!)
+
+  if (shouldTrack) {
+    dep.add(activeEffect!)
+    activeEffect!.deps.push(dep)
   }
 }
 
@@ -59,20 +66,35 @@ export function trigger(
   oldValue?: unknown,
   oldTarget?: Map<unknown, unknown> | Set<unknown>
 ) {
-  let depsMap = targetMap.get(target)
+  const depsMap = targetMap.get(target)
   if (!depsMap) {
+    // never been tracked
     return
   }
 
-  let deps = depsMap.get(key)
-  let effects: ReactiveEffect[] = []
-  if (deps) {
-    effects = [...deps]
+  let deps: (Dep | undefined)[] = []
+  deps.push(depsMap.get(key))
+
+  const effects: ReactiveEffect[] = []
+  for (const dep of deps) {
+    if (dep) {
+      effects.push(...dep)
+    }
   }
+  triggerEffects(createDep(effects))
+}
+
+export function triggerEffects(dep: Dep | ReactiveEffect[]) {
+  // spread into array for stabilization
+  const effects = [...dep]
 
   for (const effect of effects) {
-    if (effect !== activeEffect) {
-      effect.run()
-    }
+    triggerEffect(effect)
+  }
+}
+
+function triggerEffect(effect: ReactiveEffect) {
+  if (effect !== activeEffect) {
+    effect.run()
   }
 }
