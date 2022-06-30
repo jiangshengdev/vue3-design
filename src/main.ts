@@ -1,4 +1,4 @@
-import { reactive } from '@vue/reactivity'
+import { effect, reactive } from '@vue/reactivity'
 
 let data = {
   name: 'foo',
@@ -8,5 +8,15 @@ let data = {
   }
 }
 let state = reactive(data)
-
 console.log(state)
+
+effect(() => {
+  let app = document.getElementById('app')
+  if (app) {
+    app.innerHTML = `Name: ${state.name} Age: ${state.age}`
+  }
+})
+
+setTimeout(() => {
+  state.age++
+}, 1000)
