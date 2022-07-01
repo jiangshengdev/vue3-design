@@ -1,8 +1,10 @@
 import { TrackOpTypes, TriggerOpTypes } from './operations'
+import { extend } from '@vue/shared'
 import { createDep, Dep } from './dep'
 
 type KeyToDepMap = Map<any, Dep>
 const targetMap = new WeakMap<any, KeyToDepMap>()
+export type EffectScheduler = (...args: any[]) => any
 
 export let activeEffect: ReactiveEffect | undefined
 
@@ -11,7 +13,15 @@ export class ReactiveEffect<T = any> {
   deps: Dep[] = []
   parent: ReactiveEffect | undefined = undefined
 
-  constructor(public fn: () => T) {}
+  /**
+   * @internal
+   */
+  private deferStop?: boolean
+
+  constructor(
+    public fn: () => T,
+    public scheduler: EffectScheduler | null = null
+  ) {}
 
   run() {
     if (!this.active) {
@@ -21,17 +31,72 @@ export class ReactiveEffect<T = any> {
     try {
       this.parent = activeEffect
       activeEffect = this
+
+      cleanupEffect(this)
+
       return this.fn()
     } finally {
       activeEffect = this.parent
       this.parent = undefined
+
+      if (this.deferStop) {
+        this.stop()
+      }
+    }
+  }
+
+  stop() {
+    if (activeEffect === this) {
+      this.deferStop = true
+    } else if (this.active) {
+      cleanupEffect(this)
+      this.active = false
     }
   }
 }
 
-export function effect<T = any>(fn: () => T) {
+function cleanupEffect(effect: ReactiveEffect) {
+  const { deps } = effect
+  if (deps.length) {
+    for (let i = 0; i < deps.length; i++) {
+      deps[i].delete(effect)
+    }
+    deps.length = 0
+  }
+}
+
+export interface ReactiveEffectOptions {
+  lazy?: boolean
+  scheduler?: EffectScheduler
+  allowRecurse?: boolean
+  onStop?: () => void
+}
+
+export interface ReactiveEffectRunner<T = any> {
+  effect: ReactiveEffect
+
+  (): T
+}
+
+export function effect<T = any>(
+  fn: () => T,
+  options?: ReactiveEffectOptions
+): ReactiveEffectRunner {
+  if ((fn as ReactiveEffectRunner).effect) {
+    fn = (fn as ReactiveEffectRunner).effect.fn
+  }
+
   const _effect = new ReactiveEffect(fn)
-  _effect.run()
+  if (options) {
+    extend(_effect, options)
+  }
+
+  if (!options || !options.lazy) {
+    _effect.run()
+  }
+  const runner = _effect.run.bind(_effect) as ReactiveEffectRunner
+  runner.effect = _effect
+  return runner
 }
 
 export function track(target: object, type: TrackOpTypes, key: unknown) {
@@ -95,6 +160,10 @@ export function triggerEffects(dep: Dep | ReactiveEffect[]) {
 
 function triggerEffect(effect: ReactiveEffect) {
   if (effect !== activeEffect) {
-    effect.run()
+    if (effect.scheduler) {
+      effect.scheduler()
+    } else {
+      effect.run()
+    }
   }
 }
