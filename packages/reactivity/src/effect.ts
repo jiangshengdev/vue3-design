@@ -1,6 +1,7 @@
 import { TrackOpTypes, TriggerOpTypes } from './operations'
-import { extend } from '@vue/shared'
+import { extend, isArray } from '@vue/shared'
 import { createDep, Dep } from './dep'
+import { ComputedRefImpl } from './computed'
 
 type KeyToDepMap = Map<any, Dep>
 const targetMap = new WeakMap<any, KeyToDepMap>()
@@ -13,6 +14,11 @@ export class ReactiveEffect<T = any> {
   deps: Dep[] = []
   parent: ReactiveEffect | undefined = undefined
 
+  /**
+   * Can be attached after creation
+   * @internal
+   */
+  computed?: ComputedRefImpl<T>
   /**
    * @internal
    */
@@ -46,6 +52,7 @@ export class ReactiveEffect<T = any> {
   }
 
   stop() {
+    // stopped while running itself - defer the cleanup
     if (activeEffect === this) {
       this.deferStop = true
     } else if (this.active) {
@@ -65,7 +72,9 @@ function cleanupEffect(effect: ReactiveEffect) {
   }
 }
 
-export interface ReactiveEffectOptions {
+export interface DebuggerOptions {}
+
+export interface ReactiveEffectOptions extends DebuggerOptions {
   lazy?: boolean
   scheduler?: EffectScheduler
   allowRecurse?: boolean
@@ -151,8 +160,7 @@ export function trigger(
 
 export function triggerEffects(dep: Dep | ReactiveEffect[]) {
   // spread into array for stabilization
-  const effects = [...dep]
-
+  const effects = isArray(dep) ? dep : [...dep]
   for (const effect of effects) {
     triggerEffect(effect)
   }

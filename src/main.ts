@@ -1,42 +1,37 @@
-// eslint-disable-next-line no-restricted-globals
-let app = document.getElementById('app')
-import { effect, reactive } from '@vue/reactivity'
+import { computed, effect, reactive } from '@vue/reactivity'
 
-let waiting = false
+// eslint-disable-next-line no-restricted-globals
+let app = document.getElementById('app')!
+
 let data = {
-  flag: false,
-  name: 'foo',
-  age: 42
+  firstname: 'foo',
+  lastname: 'bar'
 }
 let state = reactive(data)
 console.log(state)
 
-let runner = effect(
-  () => {
-    console.log('effect run')
-    if (app) {
-      app.innerHTML = state.flag ? state.name : state.age
-    }
+let fullName = computed({
+  get() {
+    console.log('GET')
+    return `${state.firstname} ${state.lastname}`
   },
-  {
-    scheduler() {
-      if (waiting) {
-        return
-      }
+  set(newValue: any) {
+    console.log('SET')
+    let [firstname, lastname] = newValue
 
-      waiting = true
-      setTimeout(() => {
-        runner.effect.run()
-        waiting = false
-      }, 1000)
-    }
+    state.firstname = firstname
+    state.lastname = lastname
   }
-)
+})
+
+effect(() => {
+  console.log('RUN EFFECT')
+  app.innerHTML = fullName.value
+})
 
 setTimeout(() => {
-  state.age = 43
-  state.age = 44
-  state.age = 45
-  state.age = 46
-  state.age = 47
+  state.firstname = 'baz'
+  setTimeout(() => {
+    fullName.value = ['sheng', 'jiang']
+  }, 1000)
 }, 1000)

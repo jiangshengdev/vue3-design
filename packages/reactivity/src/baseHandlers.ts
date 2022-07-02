@@ -2,10 +2,12 @@ import { ReactiveFlags, reactiveMap, Target } from './reactive'
 import { TrackOpTypes, TriggerOpTypes } from './operations'
 import { track, trigger } from './effect'
 
-export const mutableHandlers: ProxyHandler<object> = {
-  get(target: Target, key: string | symbol, receiver: object) {
+const get = /*#__PURE__*/ createGetter()
+
+function createGetter(isReadonly = false, shallow = false) {
+  return function get(target: Target, key: string | symbol, receiver: object) {
     if (key === ReactiveFlags.IS_REACTIVE) {
-      return true
+      return !isReadonly
     } else if (
       key === ReactiveFlags.RAW &&
       receiver === reactiveMap.get(target)
@@ -18,8 +20,13 @@ export const mutableHandlers: ProxyHandler<object> = {
     track(target, TrackOpTypes.GET, key)
 
     return res
-  },
-  set(
+  }
+}
+
+const set = /*#__PURE__*/ createSetter()
+
+function createSetter(shallow = false) {
+  return function set(
     target: object,
     key: string | symbol,
     value: unknown,
@@ -33,4 +40,9 @@ export const mutableHandlers: ProxyHandler<object> = {
 
     return result
   }
+}
+
+export const mutableHandlers: ProxyHandler<object> = {
+  get,
+  set
 }
