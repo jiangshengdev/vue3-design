@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-globals
 let app = document.getElementById('app')
 import { effect, reactive } from '@vue/reactivity'
 
