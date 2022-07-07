@@ -8,16 +8,16 @@ let state = reactive({
   lastname: 'bar'
 })
 
-let fullName = computed(() => {
+let fullName = computed(function computedFn() {
   console.log('get')
   return `${state.firstname} ${state.lastname}`
 })
 
-effect(() => {
+effect(function effectFn() {
   console.log('run')
   app.innerHTML = fullName.value
 })
 
-setTimeout(() => {
+setTimeout(function setTimeoutFn() {
   state.firstname = 'baz'
 }, 1000)
