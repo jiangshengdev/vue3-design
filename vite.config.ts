@@ -16,5 +16,8 @@ export default defineConfig({
       }
     ]
   },
+  define: {
+    __DEV__: `true`,
+  },
   plugins: [vue()]
 })
