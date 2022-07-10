@@ -1,23 +1,9 @@
-import { computed, effect, reactive } from '@vue/reactivity'
+import { reactive, readonly } from '@vue/reactivity'
 
-// eslint-disable-next-line no-restricted-globals
-let app = document.getElementById('app')!
-
-let state = reactive({
-  firstname: 'foo',
-  lastname: 'bar'
+let proxy1 = readonly({
+  name: 'foo'
 })
 
-let fullName = computed(function computedFn() {
-  console.log('get')
-  return `${state.firstname} ${state.lastname}`
-})
+let proxy2 = reactive(proxy1)
 
-effect(function effectFn() {
-  console.log('run')
-  app.innerHTML = fullName.value
-})
-
-setTimeout(function setTimeoutFn() {
-  state.firstname = 'baz'
-}, 1000)
+console.log(proxy1 === proxy2)

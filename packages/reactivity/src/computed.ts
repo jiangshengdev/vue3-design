@@ -25,9 +25,13 @@ export interface WritableComputedOptions<T> {
 
 export class ComputedRefImpl<T> {
   public dep?: Dep = undefined
+
+  private _value!: T
   public readonly effect: ReactiveEffect<T>
+
   public readonly __v_isRef = true
   public readonly [ReactiveFlags.IS_READONLY]: boolean = false
+
   public _dirty = true
   public _cacheable: boolean
 
@@ -47,8 +51,6 @@ export class ComputedRefImpl<T> {
     this.effect.active = this._cacheable = !isSSR
     this[ReactiveFlags.IS_READONLY] = isReadonly
   }
-
-  private _value!: T
 
   get value() {
     // the computed ref may get wrapped by other proxies e.g. readonly() #3376
@@ -85,13 +87,22 @@ export function computed<T>(
   const onlyGetter = isFunction(getterOrOptions)
   if (onlyGetter) {
     getter = getterOrOptions
-    setter = NOOP
+    setter = __DEV__
+      ? () => {
+          console.warn('Write operation failed: computed value is readonly')
+        }
+      : NOOP
   } else {
     getter = getterOrOptions.get
     setter = getterOrOptions.set
   }
 
   const cRef = new ComputedRefImpl(getter, setter, onlyGetter || !setter, isSSR)
+
+  if (__DEV__ && debugOptions && !isSSR) {
+    cRef.effect.onTrack = debugOptions.onTrack
+    cRef.effect.onTrigger = debugOptions.onTrigger
+  }
 
   return cRef as any
 }
